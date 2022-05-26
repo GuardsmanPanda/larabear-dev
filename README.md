@@ -2,7 +2,6 @@
 
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/guardspanda/larabear-dev.svg?style=flat-square)](https://packagist.org/packages/guardspanda/larabear-dev)
 [![Total Downloads](https://img.shields.io/packagist/dt/guardspanda/larabear-dev.svg?style=flat-square)](https://packagist.org/packages/guardspanda/larabear-dev)
-![GitHub Actions](https://github.com/guardspanda/larabear-dev/actions/workflows/main.yml/badge.svg)
 
 This is where your description should go. Try and limit it to a paragraph or two, and maybe throw in a mention of what PSRs you support to avoid any confusion with users and contributors.
 
@@ -11,7 +10,7 @@ This is where your description should go. Try and limit it to a paragraph or two
 You can install the package via composer:
 
 ```bash
-composer require guardspanda/larabear-dev
+composer require guardspanda/larabear-dev  --dev dev-main
 ```
 
 ## Usage
