@@ -1,8 +1,8 @@
 <?php
 
-namespace GuardsmanPanda\LarabearDev\Provider;
+namespace GuardsmanPanda\LarabearDev\Infrastructure\Laravel\Provider;
 
-use GuardsmanPanda\LarabearDev\Command\BearPhpStanCommand;
+use GuardsmanPanda\LarabearDev\Infrastructure\Integrity\Command\BearPhpStanCommand;
 use Illuminate\Support\ServiceProvider;
 
 class BearDevServiceProvider extends ServiceProvider {
