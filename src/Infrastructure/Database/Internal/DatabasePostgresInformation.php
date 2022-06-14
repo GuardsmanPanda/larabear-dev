@@ -5,7 +5,7 @@ namespace GuardsmanPanda\LarabearDev\Infrastructure\Database\Internal;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 
-class PostgresDatabaseInformation extends BaseDatabaseInformation {
+class DatabasePostgresInformation extends DatabaseBaseInformation {
     private string $databaseName;
 
     public function __construct(string $connectionName) {
