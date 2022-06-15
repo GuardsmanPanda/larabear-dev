@@ -33,7 +33,8 @@ class EloquentModelGeneratorCommand extends Command {
                 $dto = new EloquentModelInternal(
                     tableName: $table_name,
                     modelClassName: $info['class'] ?? Str::studly($table_name),
-                    modelLocation: $info['location']
+                    modelLocation: $info['location'],
+                    dateFormat: $dbInfo->getDateFormat()
                 );
 
                 $columns = $dbInfo->getColumnsForTable(tableName: $table_name);
@@ -49,13 +50,19 @@ class EloquentModelGeneratorCommand extends Command {
                 }
                 $dto = $models[$constraint->table_name];
                 if ($constraint->constraint_type === 'PRIMARY KEY') {
-
                     $dto->setPrimaryKeyInformation(primaryKeyColumnName: $constraint->column_name, primaryKeyType: $dto->getColumns()[$constraint->column_name]->dataType);
                 }
             }
 
             foreach ($models as $model) {
                 $this->info(string: "  Generating Eloquent Model for table: " . $model->getTableName());
+                $dir = $model->getModelDirectory();
+                if (!is_dir($dir)) {
+                    $this->info(string: "    Creating directory: $dir");
+                    if (!mkdir($dir) && !is_dir($dir)) {
+                        throw new RuntimeException(sprintf('Directory "%s" was not created', $dir));
+                    }
+                }
                 file_put_contents(filename: $model->getModelPath(), data: $model->getClassContent());
             }
         }

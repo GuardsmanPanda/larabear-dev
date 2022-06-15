@@ -19,7 +19,8 @@ class EloquentModelInternal {
     public function __construct(
         private readonly string $tableName,
         private readonly string $modelClassName,
-        private readonly string $modelLocation
+        private readonly string $modelLocation,
+        private readonly string $dateFormat
     ) {
         $this->headers = new Set(setType: 'string');
         $this->headers->add('use Illuminate\Database\Query\Builder;');
@@ -34,6 +35,10 @@ class EloquentModelInternal {
 
     public function getModelClassName(): string {
         return $this->modelClassName;
+    }
+
+    public function getModelDirectory(): string {
+        return App::basePath(path: trim(string: $this->modelLocation, characters: '/'));
     }
 
     public function getModelPath(): string {
@@ -83,7 +88,7 @@ class EloquentModelInternal {
                 $casts[$column->columnName] = $column->eloquentCast;
             }
         }
-        sort(array: $casts);
+        ksort(array: $casts);
         return $casts;
     }
 
@@ -93,19 +98,23 @@ class EloquentModelInternal {
         $content .= "class " . $this->getModelClassName() . " extends Model {" . PHP_EOL;
 
         $content .= "    protected \$table = '$this->tableName';" . PHP_EOL;
+        $content .= "    protected \$dateFormat = '$this->dateFormat';" . PHP_EOL;
+
         if ($this->timestamps === false) {
             $content .= "    public \$timestamps = false;" . PHP_EOL;
         }
+
+
         $casts = $this->getCasts();
         if (count($casts) > 0) {
             $content .= "    protected \$casts = [" . PHP_EOL;
             foreach ($casts as $col_name => $cast_target) {
-                $content .= "        '$col_name' => '$cast_target'," . PHP_EOL;
+                $content .= "        '$col_name' => $cast_target," . PHP_EOL;
             }
             $content .= "    ];" . PHP_EOL . PHP_EOL;
         }
 
-        $content .= "    protected \$guarded = ['id','updated_at','created_at','deleted_at'];" . PHP_EOL;
+        $content .= "    protected \$guarded = ['$this->primaryKeyColumnName','updated_at','created_at','deleted_at'];" . PHP_EOL;
         $content .= "}" . PHP_EOL;
         return $content;
     }

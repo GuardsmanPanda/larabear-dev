@@ -17,5 +17,6 @@ abstract class DatabaseBaseInformation {
     abstract public function getColumnsForTable(string $tableName): array;
     abstract public function getAllConstraints(): array;
 
+    abstract public function getDateFormat(): string;
     abstract public function databaseTypeToPhpType(string $databaseType): string;
 }

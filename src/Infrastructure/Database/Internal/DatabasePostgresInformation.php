@@ -51,6 +51,10 @@ class DatabasePostgresInformation extends DatabaseBaseInformation {
         ", bindings: [$this->databaseName]);
     }
 
+    public function getDateFormat(): string {
+        return 'Y-m-d H:i:sO';
+    }
+
 
     public function databaseTypeToPhpType(string $databaseType): string {
         return match ($databaseType) {
