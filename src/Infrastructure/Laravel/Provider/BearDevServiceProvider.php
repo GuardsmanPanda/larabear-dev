@@ -13,7 +13,7 @@ class BearDevServiceProvider extends ServiceProvider {
                 BearPhpStanCommand::class,
                 EloquentModelGeneratorCommand::class,
             ]);
-            $this->publishes(paths: [__DIR__ . '/../../config/config.php' => $this->app->configPath(path: 'bear-dev.php'),], groups: 'bear-dev');
+            $this->publishes(paths: [__DIR__ . '/../../../../config/config.php' => $this->app->configPath(path: 'bear-dev.php'),], groups: 'bear-dev');
         }
     }
 }

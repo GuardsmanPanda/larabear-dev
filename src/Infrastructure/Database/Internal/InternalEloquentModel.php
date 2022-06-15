@@ -1,20 +1,32 @@
 <?php
 
-namespace GuardsmanPanda\LarabearDev\Infrastructure\Database\Dto;
+namespace GuardsmanPanda\LarabearDev\Infrastructure\Database\Internal;
 
+use Illuminate\Support\Facades\App;
 use Ramsey\Collection\Set;
 
-class InternalEloquentModelDto {
+class InternalEloquentModel {
     private string $primaryKeyColumnName;
     private string $primaryKeyType;
-    private array $headers;
+    private bool $timestamps = false;
+    private Set $headers;
+
+    /**
+     * @var array<string, InternalEloquentModelColumn>
+     */
+    private array $columns = [];
 
     public function __construct(
-        private readonly string $connectionDriver,
         private readonly string $tableName,
         private readonly string $modelClassName,
         private readonly string $modelLocation
-    ) {}
+    ) {
+        $this->headers = new Set(setType: 'string');
+        $this->headers->add('use Illuminate\Database\Query\Builder;');
+        $this->headers->add('use Illuminate\Database\Eloquent\Model;');
+        $this->headers->add('use Illuminate\Database\Eloquent\Collection;');
+        $this->headers->add('use Closure;');
+    }
 
     public function getTableName(): string {
         return $this->tableName;
@@ -24,29 +36,86 @@ class InternalEloquentModelDto {
         return $this->modelClassName;
     }
 
-    public function getModelLocation(): string {
-        return $this->modelLocation;
+    public function getModelPath(): string {
+        return App::basePath(path: trim(string: $this->modelLocation, characters: '/') . '/') . $this->modelClassName . '.php';
     }
 
     public function getNameSpace(): string {
-        return $this->modelLocation;
+        return str_replace('/', '\\', ucfirst($this->modelLocation));
     }
+
+    public function getPrimaryKeyColumnName(): string {
+        return $this->primaryKeyColumnName;
+    }
+
 
     public function setPrimaryKeyInformation(string $primaryKeyColumnName, string $primaryKeyType): void {
         $this->primaryKeyColumnName = $primaryKeyColumnName;
         $this->primaryKeyType = $primaryKeyType;
     }
 
-    public function setHeaders(Set $allHeaders): void {
-        $this->headers = $allHeaders->toArray();
-        sort($this->headers);
-        $this->headers = array_unique(array_map(static function ($ele) { return trim($ele); }, $this->headers));
+    public function addHeader(string $header): void {
+        $this->headers->add($header);
     }
 
-    public function getTopOfClass(): string {
+    public function addColumn(InternalEloquentModelColumn $column): void {
+        $this->headers->add($column->requiredHeader);
+        if ($column->columnName === 'delete_at') {
+            $this->headers->add('use Illuminate\Database\Eloquent\SoftDeletes;');
+        }
+        if ($column->columnName === 'updated_at') {
+            $this->timestamps = true;
+        }
+        $this->columns[$column->columnName] = $column;
+    }
+
+    public function getCasts(): array {
+        $casts = [];
+        foreach ($this->columns as $column) {
+            if ($column->eloquentCast !== null) {
+                $casts[$column->columnName] = $column->eloquentCast;
+            }
+        }
+        sort(array: $casts);
+        return $casts;
+    }
+
+
+    public function getClassContent(): string {
+        $content = $this->getTopOfClass();
+        $content .= "class " . $this->getModelClassName() . " extends Model {" . PHP_EOL;
+
+        $content .= "    protected \$table = '$this->tableName';" . PHP_EOL;
+        if ($this->timestamps === false) {
+            $content .= "    public \$timestamps = false;" . PHP_EOL;
+        }
+        $casts = $this->getCasts();
+        if (count($casts) > 0) {
+            $content .= "    protected \$casts = [" . PHP_EOL;
+            foreach ($casts as $col_name => $cast_target) {
+                $content .= "        '$col_name' => '$cast_target'," . PHP_EOL;
+            }
+            $content .= "    ];" . PHP_EOL . PHP_EOL;
+        }
+
+        $content .= "    protected \$guarded = ['id','updated_at','created_at','deleted_at'];" . PHP_EOL;
+        $content .= "}" . PHP_EOL;
+        return $content;
+    }
+
+
+    private function getTopOfClass(): string {
         $content = "<?php" . PHP_EOL . PHP_EOL . 'namespace ' . $this->getNameSpace() . ';' . PHP_EOL . PHP_EOL;
 
-        foreach ($this->headers as $header) {
+        $hh = $this->headers->toArray();
+        sort($hh);
+        $hh = array_unique(array_map(static function ($ele) {
+            return trim($ele);
+        }, $hh));
+        foreach ($hh as $header) {
+            if ($header === '') {
+                continue;
+            }
             $content .= $header . PHP_EOL;
         }
 
@@ -76,7 +145,20 @@ class InternalEloquentModelDto {
         $content .= " * @method static Builder|$this->modelClassName whereRaw(string \$sql, array \$bindings, string \$boolean = 'and')" . PHP_EOL;
         $content .= " * @method static Builder|$this->modelClassName orderBy(string \$column, string \$direction = 'asc')" . PHP_EOL;
         $content .= " *" . PHP_EOL;
+
+        usort(array: $this->columns, callback: static function ($a, $b) {
+            if ($a->sortOrder === $b->sortOrder) {
+                return strlen(string: $a->columnName) - strlen(string: $b->columnName) === 0 ? strcmp(string1: $a->columnName, string2: $b->columnName) : strlen(string: $a->columnName) - strlen(string: $b->columnName);
+            }
+            return $a->sortOrder - $b->sortOrder;
+        });
+        foreach ($this->columns as $column) {
+            $content .= " * @property " . $column->dataType . " $" . $column->columnName . PHP_EOL;
+        }
+
+        $content .= " *" . PHP_EOL;
+        $content .= " * AUTO GENERATED FILE DO NOT MODIFY" . PHP_EOL;
+        $content .= " */" . PHP_EOL;
         return $content;
     }
-
 }
