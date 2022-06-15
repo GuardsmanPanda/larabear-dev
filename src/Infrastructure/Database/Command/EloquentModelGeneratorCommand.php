@@ -3,7 +3,7 @@
 namespace GuardsmanPanda\LarabearDev\Infrastructure\Database\Command;
 
 use GuardsmanPanda\LarabearDev\Infrastructure\Database\Internal\DatabaseBaseInformation;
-use GuardsmanPanda\LarabearDev\Infrastructure\Database\Internal\InternalEloquentModel;
+use GuardsmanPanda\LarabearDev\Infrastructure\Database\Internal\EloquentModelInternal;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Str;
@@ -30,7 +30,7 @@ class EloquentModelGeneratorCommand extends Command {
                     continue; //skip tables not in the config
                 }
                 $info = $connection_config[$table_name];
-                $dto = new InternalEloquentModel(
+                $dto = new EloquentModelInternal(
                     tableName: $table_name,
                     modelClassName: $info['class'] ?? Str::studly($table_name),
                     modelLocation: $info['location']
@@ -41,6 +41,16 @@ class EloquentModelGeneratorCommand extends Command {
                     $dto->addColumn($column);
                 }
                 $models[$table_name] = $dto;
+            }
+
+            foreach ($dbInfo->getAllConstraints() as $constraint) {
+                if (!array_key_exists($constraint->table_name, $models)) {
+                    continue;
+                }
+                $dto = $models[$constraint->table_name];
+                if ($constraint->constraint_type === 'PRIMARY KEY') {
+                    $dto->setPrimaryKeyInformation(primaryKeyColumnName: $constraint->column_name, primaryKeyType: $dbInfo->databaseTypeToPhpType($constraint->data_type));
+                }
             }
 
             foreach ($models as $model) {

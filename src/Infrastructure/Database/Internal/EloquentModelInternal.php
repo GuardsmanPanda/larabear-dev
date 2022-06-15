@@ -5,14 +5,14 @@ namespace GuardsmanPanda\LarabearDev\Infrastructure\Database\Internal;
 use Illuminate\Support\Facades\App;
 use Ramsey\Collection\Set;
 
-class InternalEloquentModel {
+class EloquentModelInternal {
     private string $primaryKeyColumnName;
     private string $primaryKeyType;
     private bool $timestamps = false;
     private Set $headers;
 
     /**
-     * @var array<string, InternalEloquentModelColumn>
+     * @var array<string, EloquentModelColumnInternal>
      */
     private array $columns = [];
 
@@ -58,7 +58,7 @@ class InternalEloquentModel {
         $this->headers->add($header);
     }
 
-    public function addColumn(InternalEloquentModelColumn $column): void {
+    public function addColumn(EloquentModelColumnInternal $column): void {
         $this->headers->add($column->requiredHeader);
         if ($column->columnName === 'delete_at') {
             $this->headers->add('use Illuminate\Database\Eloquent\SoftDeletes;');

@@ -2,7 +2,7 @@
 
 namespace GuardsmanPanda\LarabearDev\Infrastructure\Database\Internal;
 
-class InternalEloquentModelColumn {
+class EloquentModelColumnInternal {
 
     public function __construct(
         public readonly string $columnName,

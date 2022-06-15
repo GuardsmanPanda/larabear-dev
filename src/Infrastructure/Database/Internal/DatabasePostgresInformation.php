@@ -22,9 +22,9 @@ class DatabasePostgresInformation extends DatabaseBaseInformation {
         $res = DB::select(query: "SELECT column_name, data_type, is_nullable FROM information_schema.columns WHERE table_catalog = ? AND table_name = ?", bindings: [$this->databaseName, $tableName]);
         $tmp = [];
         foreach ($res as $row) {
-            $tmp[] = new InternalEloquentModelColumn(
+            $tmp[] = new EloquentModelColumnInternal(
                 columnName: $row->column_name,
-                dataType: $this->postgresTypeToPhpType($row->data_type),
+                dataType: $this->databaseTypeToPhpType(databaseType: $row->data_type),
                 sortOrder: $this->postgresTypeSortOrder($row->data_type),
                 isNullable: $row->is_nullable,
                 requiredHeader: $this->postgresTypeToPhpHeader($row->data_type),
@@ -52,15 +52,15 @@ class DatabasePostgresInformation extends DatabaseBaseInformation {
     }
 
 
-    private function postgresTypeToPhpType(string $postgres_type): string {
-        return match ($postgres_type) {
+    public function databaseTypeToPhpType(string $databaseType): string {
+        return match ($databaseType) {
             'date', 'timestamp with time zone' => 'CarbonInterface',
             'text', 'inet', 'cidr', 'uuid' => 'string',
             'integer', 'bigint', 'smallint' => 'int',
             'double precision' => 'float',
             'jsonb' => 'stdClass',
             'boolean' => 'bool',
-            default => throw new RuntimeException(message: "Unknown type: $postgres_type")
+            default => throw new RuntimeException(message: "Unknown type: $databaseType")
         };
     }
 
