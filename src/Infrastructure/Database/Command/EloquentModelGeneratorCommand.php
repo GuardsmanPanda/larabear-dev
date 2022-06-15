@@ -49,7 +49,8 @@ class EloquentModelGeneratorCommand extends Command {
                 }
                 $dto = $models[$constraint->table_name];
                 if ($constraint->constraint_type === 'PRIMARY KEY') {
-                    $dto->setPrimaryKeyInformation(primaryKeyColumnName: $constraint->column_name, primaryKeyType: $dbInfo->databaseTypeToPhpType($constraint->data_type));
+
+                    $dto->setPrimaryKeyInformation(primaryKeyColumnName: $constraint->column_name, primaryKeyType: $dto->getColumns()[$constraint->column_name]->dataType);
                 }
             }
 

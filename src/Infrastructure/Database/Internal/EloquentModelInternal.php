@@ -69,6 +69,13 @@ class EloquentModelInternal {
         $this->columns[$column->columnName] = $column;
     }
 
+    /**
+     * @return array<string, EloquentModelColumnInternal>
+     */
+    public function getColumns(): array {
+        return $this->columns;
+    }
+
     public function getCasts(): array {
         $casts = [];
         foreach ($this->columns as $column) {
