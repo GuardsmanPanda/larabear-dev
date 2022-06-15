@@ -10,7 +10,7 @@ class InternalEloquentModelColumn {
         public int $sortOrder,
         public readonly bool $isNullable,
         public readonly string $requiredHeader,
-        public readonly string $eloquentCast,
+        public readonly string|null $eloquentCast,
     ) {
         if ($this->isNullable) {
             ++$this->sortOrder;

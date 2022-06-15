@@ -25,7 +25,7 @@ class DatabasePostgresInformation extends DatabaseBaseInformation {
             $tmp[] = new InternalEloquentModelColumn(
                 columnName: $row->column_name,
                 dataType: $this->postgresTypeToPhpType($row->data_type),
-                sortOrder: $this->postgresTypeSortOrder($row->column_name),
+                sortOrder: $this->postgresTypeSortOrder($row->data_type),
                 isNullable: $row->is_nullable,
                 requiredHeader: $this->postgresTypeToPhpHeader($row->data_type),
                 eloquentCast: $this->postgresTypeToEloquentCast($row->column_name, $row->data_type)
@@ -82,20 +82,20 @@ class DatabasePostgresInformation extends DatabaseBaseInformation {
             'jsonb' => 'use Infrastructure\Database\Cast\AsJson;' . PHP_EOL . 'use stdClass;',
             'text', 'inet', 'cidr', 'uuid', 'integer', 'bigint', 'smallint', 'double precision', 'boolean' => '',
             'date', 'timestamp with time zone' => 'use Carbon\\CarbonInterface;',
-            default => throw new RuntimeException("Unknown type: $postgres_type")
+            default => throw new RuntimeException(message: "Unknown type: $postgres_type")
         };
     }
 
-    private function postgresTypeToEloquentCast(string $name, string $postgres_type): ?array {
+    private function postgresTypeToEloquentCast(string $name, string $postgres_type): string|null {
         if (str_starts_with($name, 'encrypted_')) {
-            return [$name, "'encrypted'"];
+            return "'encrypted'";
         }
         return match ($postgres_type) {
             'text', 'inet', 'cidr', 'uuid', 'integer', 'bigint', 'smallint', 'double precision', 'boolean' => null,
-            'timestamp with time zone' => [$name, "'immutable_datetime'"],
-            'jsonb' => [$name, "AsJson::class"],
-            'date' => [$name, "'immutable_date'"],
-            default => throw new RuntimeException("Unknown type: $postgres_type")
+            'timestamp with time zone' => "'immutable_datetime'",
+            'jsonb' => "AsJson::class",
+            'date' => "'immutable_date'",
+            default => throw new RuntimeException(message: "Unknown type: $postgres_type")
         };
     }
 }
