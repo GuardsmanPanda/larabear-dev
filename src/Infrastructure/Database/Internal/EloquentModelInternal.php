@@ -98,11 +98,23 @@ class EloquentModelInternal {
         $content .= "class " . $this->getModelClassName() . " extends Model {" . PHP_EOL;
 
         $content .= "    protected \$table = '$this->tableName';" . PHP_EOL;
+
+        if ($this->primaryKeyColumnName !== 'id') {
+            $content .= "    protected \$primaryKey = '$this->primaryKeyColumnName';" . PHP_EOL;
+        }
+        if ($this->primaryKeyType !== 'int') {
+            $content .= "    protected \$keyType = '$this->primaryKeyType';" . PHP_EOL;
+        }
+        if ($this->primaryKeyColumnName !== 'id' || $this->primaryKeyType !== 'int') {
+            $content .= "    public \$incrementing = false;" . PHP_EOL;
+        }
+
         $content .= "    protected \$dateFormat = '$this->dateFormat';" . PHP_EOL;
 
         if ($this->timestamps === false) {
             $content .= "    public \$timestamps = false;" . PHP_EOL;
         }
+        $content .= PHP_EOL;
 
 
         $casts = $this->getCasts();
