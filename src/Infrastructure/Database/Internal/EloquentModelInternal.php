@@ -150,7 +150,7 @@ class EloquentModelInternal {
         $content .= PHP_EOL . "/**" . PHP_EOL;
         $content .= " * AUTO GENERATED FILE DO NOT MODIFY" . PHP_EOL;
         $content .= " *" . PHP_EOL;
-        $content .= " * @method static $this->modelClassName |null find($this->primaryKeyType \$id, array \$columns = ['*'])" . PHP_EOL;
+        $content .= " * @method static $this->modelClassName|null find($this->primaryKeyType \$id, array \$columns = ['*'])" . PHP_EOL;
         $content .= " * @method static $this->modelClassName findOrFail($this->primaryKeyType \$id, array \$columns = ['*'])" . PHP_EOL;
         $content .= " * @method static $this->modelClassName findOrNew($this->primaryKeyType \$id, array \$columns = ['*'])" . PHP_EOL;
         $content .= " * @method static $this->modelClassName sole(array \$columns = ['*'])" . PHP_EOL;
@@ -158,7 +158,7 @@ class EloquentModelInternal {
         $content .= " * @method static $this->modelClassName firstOrFail(array \$columns = ['*'])" . PHP_EOL;
         $content .= " * @method static $this->modelClassName firstOrCreate(array \$filter, array \$values)" . PHP_EOL;
         $content .= " * @method static $this->modelClassName firstOrNew(array \$filter, array \$values)" . PHP_EOL;
-        $content .= " * @method static $this->modelClassName|null firstWhere(string \$column, string \$operator = null, string \$value = null, string \$boolean = 'and')" . PHP_EOL;
+        $content .= " * @method static $this->modelClassName firstWhere(string \$column, string \$operator = null, string \$value = null, string \$boolean = 'and')" . PHP_EOL;
         $content .= " * @method static Collection|$this->modelClassName all(array \$columns = ['*'])" . PHP_EOL;
         $content .= " * @method static Collection|$this->modelClassName fromQuery(string \$query, array \$bindings = [])" . PHP_EOL;
         $content .= " * @method static Builder|$this->modelClassName lockForUpdate()" . PHP_EOL;
@@ -170,7 +170,7 @@ class EloquentModelInternal {
         $content .= " * @method static Builder|$this->modelClassName whereHas(string \$relation, Closure \$callback, string \$operator = '>=', int \$count = 1)" . PHP_EOL;
         $content .= " * @method static Builder|$this->modelClassName whereNull(string|array \$columns, string \$boolean = 'and')" . PHP_EOL;
         $content .= " * @method static Builder|$this->modelClassName whereNotNull(string|array \$columns, string \$boolean = 'and')" . PHP_EOL;
-        $content .= " * @method static Builder|$this->modelClassName whereRaw(string \$sql, array \$bindings, string \$boolean = 'and')" . PHP_EOL;
+        $content .= " * @method static Builder|$this->modelClassName whereRaw(string \$sql, array \$bindings = [], string \$boolean = 'and')" . PHP_EOL;
         $content .= " * @method static Builder|$this->modelClassName orderBy(string \$column, string \$direction = 'asc')" . PHP_EOL;
         $content .= " *" . PHP_EOL;
 
