@@ -83,7 +83,7 @@ class DatabasePostgresInformation extends DatabaseBaseInformation {
 
     private function postgresTypeToPhpHeader(string $postgres_type): string {
         return match ($postgres_type) {
-            'jsonb' => 'use Infrastructure\Database\Cast\AsJson;' . PHP_EOL . 'use stdClass;',
+            'jsonb' => 'use GuardsmanPanda\Larabear\Infrastructure\Database\Cast\BearAsJsonCast;' . PHP_EOL . 'use stdClass;',
             'text', 'inet', 'cidr', 'uuid', 'integer', 'bigint', 'smallint', 'double precision', 'boolean' => '',
             'date', 'timestamp with time zone' => 'use Carbon\\CarbonInterface;',
             default => throw new RuntimeException(message: "Unknown type: $postgres_type")
@@ -97,7 +97,7 @@ class DatabasePostgresInformation extends DatabaseBaseInformation {
         return match ($postgres_type) {
             'text', 'inet', 'cidr', 'uuid', 'integer', 'bigint', 'smallint', 'double precision', 'boolean' => null,
             'timestamp with time zone' => "'immutable_datetime'",
-            'jsonb' => "AsJson::class",
+            'jsonb' => "BearAsJsonCast::class",
             'date' => "'immutable_date'",
             default => throw new RuntimeException(message: "Unknown type: $postgres_type")
         };
