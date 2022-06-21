@@ -31,6 +31,7 @@ class EloquentModelGeneratorCommand extends Command {
                 }
                 $info = $connection_config[$table_name];
                 $dto = new EloquentModelInternal(
+                    connectionName: $connection_name,
                     tableName: $table_name,
                     modelClassName: $info['class'] ?? Str::studly($table_name),
                     modelLocation: $info['location'],

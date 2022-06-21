@@ -17,6 +17,7 @@ class EloquentModelInternal {
     private array $columns = [];
 
     public function __construct(
+        private readonly string $connectionName,
         private readonly string $tableName,
         private readonly string $modelClassName,
         private readonly string $modelLocation,
@@ -96,7 +97,7 @@ class EloquentModelInternal {
     public function getClassContent(): string {
         $content = $this->getTopOfClass();
         $content .= "class " . $this->getModelClassName() . " extends Model {" . PHP_EOL;
-
+        $content .= "    protected \$connection = '$this->connectionName';" . PHP_EOL;
         $content .= "    protected \$table = '$this->tableName';" . PHP_EOL;
 
         if ($this->primaryKeyColumnName !== 'id') {
