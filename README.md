@@ -1,7 +1,7 @@
 # Very short description of the package
 
-[![Latest Version on Packagist](https://img.shields.io/packagist/v/guardspanda/larabear-dev.svg?style=flat-square)](https://packagist.org/packages/guardspanda/larabear-dev)
-[![Total Downloads](https://img.shields.io/packagist/dt/guardspanda/larabear-dev.svg?style=flat-square)](https://packagist.org/packages/guardspanda/larabear-dev)
+[![Latest Version on Packagist](https://img.shields.io/packagist/v/guardsmanpanda/larabear-dev.svg?style=flat-square)](https://packagist.org/packages/guardsmanpanda/larabear-dev)
+[![Total Downloads](https://img.shields.io/packagist/dt/guardsmanpanda/larabear-dev.svg?style=flat-square)](https://packagist.org/packages/guardsmanpanda/larabear-dev)
 
 This is where your description should go. Try and limit it to a paragraph or two, and maybe throw in a mention of what PSRs you support to avoid any confusion with users and contributors.
 

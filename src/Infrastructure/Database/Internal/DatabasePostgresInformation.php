@@ -9,17 +9,17 @@ use RuntimeException;
 class DatabasePostgresInformation extends DatabaseBaseInformation {
     private string $databaseName;
 
-    public function __construct(string $connectionName) {
+    public function __construct(private readonly string $connectionName) {
         $this->databaseName = Config::get(key: "database.connections.$connectionName.database");
     }
 
     public function getAllTableNames(): array {
-        $res = DB::select(query: "SELECT table_name FROM information_schema.tables WHERE table_type = 'BASE TABLE' AND table_catalog = ?", bindings: [$this->databaseName]);
+        $res = DB::connection(name: $this->connectionName)->select(query: "SELECT table_name FROM information_schema.tables WHERE table_type = 'BASE TABLE' AND table_catalog = ?", bindings: [$this->databaseName]);
         return array_column(array: $res, column_key: 'table_name');
     }
 
     public function getColumnsForTable(string $tableName): array {
-        $res = DB::select(query: "SELECT column_name, data_type, is_nullable = 'YES' AS is_nullable FROM information_schema.columns WHERE table_catalog = ? AND table_name = ?", bindings: [$this->databaseName, $tableName]);
+        $res = DB::connection(name: $this->connectionName)->select(query: "SELECT column_name, data_type, is_nullable = 'YES' AS is_nullable FROM information_schema.columns WHERE table_catalog = ? AND table_name = ?", bindings: [$this->databaseName, $tableName]);
         $tmp = [];
         foreach ($res as $row) {
             $tmp[] = new EloquentModelColumnInternal(
@@ -36,7 +36,7 @@ class DatabasePostgresInformation extends DatabaseBaseInformation {
 
 
     public function getAllConstraints(): array {
-        return DB::select(query: "
+        return DB::connection(name: $this->connectionName)->select(query: "
             SELECT
                 tc.table_name,
                 tc.constraint_name,
