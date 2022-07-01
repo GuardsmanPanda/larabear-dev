@@ -10,7 +10,7 @@ use Illuminate\Support\Str;
 use RuntimeException;
 
 class EloquentModelGeneratorCommand extends Command {
-    protected $signature = 'bear:generate-db';
+    protected $signature = 'bear:db';
     protected $description = 'Generate Eloquent Models';
 
     public function handle(): void {
