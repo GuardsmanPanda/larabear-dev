@@ -167,8 +167,10 @@ class EloquentModelInternal {
         $content .= " * @method static Builder|$this->modelClassName with(array  \$relations)" . PHP_EOL;
         $content .= " * @method static Builder|$this->modelClassName leftJoin(string \$table, string \$first, string \$operator = null, string \$second = null)" . PHP_EOL;
         $content .= " * @method static Builder|$this->modelClassName where(string \$column, string \$operator = null, string \$value = null, string \$boolean = 'and')" . PHP_EOL;
-        $content .= " * @method static Builder|$this->modelClassName whereIn(string \$column, array \$values, string \$boolean = 'and', bool \$not = false)" . PHP_EOL;
+        $content .= " * @method static Builder|$this->modelClassName whereExists(Closure \$callback, string \$boolean = 'and', bool \$not = false)" . PHP_EOL;
+        $content .= " * @method static Builder|$this->modelClassName whereNotExists(Closure \$callback, string \$boolean = 'and')" . PHP_EOL;
         $content .= " * @method static Builder|$this->modelClassName whereHas(string \$relation, Closure \$callback, string \$operator = '>=', int \$count = 1)" . PHP_EOL;
+        $content .= " * @method static Builder|$this->modelClassName whereIn(string \$column, array \$values, string \$boolean = 'and', bool \$not = false)" . PHP_EOL;
         $content .= " * @method static Builder|$this->modelClassName whereNull(string|array \$columns, string \$boolean = 'and')" . PHP_EOL;
         $content .= " * @method static Builder|$this->modelClassName whereNotNull(string|array \$columns, string \$boolean = 'and')" . PHP_EOL;
         $content .= " * @method static Builder|$this->modelClassName whereRaw(string \$sql, array \$bindings = [], string \$boolean = 'and')" . PHP_EOL;
