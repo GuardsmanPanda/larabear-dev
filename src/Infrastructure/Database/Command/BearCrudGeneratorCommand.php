@@ -3,6 +3,7 @@
 namespace GuardsmanPanda\LarabearDev\Infrastructure\Database\Command;
 
 use GuardsmanPanda\Larabear\Infrastructure\Console\Service\ConsoleService;
+use GuardsmanPanda\LarabearDev\Infrastructure\Database\Internal\BuildEloquentModelInternal;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Config;
 
@@ -14,6 +15,7 @@ class BearCrudGeneratorCommand extends Command {
         $table_input = $this->argument(key: 'table_name');
         $connection_input = $this->argument(key: 'connection_name');
         ConsoleService::printH1(headline: "Generate Crud Classes For $table_input" . ($connection_input ? " [$connection_input]" : ''));
+        ConsoleService::printH2(headline: 'Looking for table..');
         $connections = Config::get(key: 'bear-dev.eloquent-model-generator');
         $connect_use = null;
         $config = null;
@@ -29,9 +31,10 @@ class BearCrudGeneratorCommand extends Command {
                 }
             }
         }
+        $models = BuildEloquentModelInternal::buildAll(connectionName: $connect_use, tableConfig: $config);
 
+        ConsoleService::printTestResult(testName: "Table [$table_input] found in config for connection [$connect_use].", errorMessage: $connect_use === null ? "Table: [$table_input] not found in config." : null);
         if ($connect_use === null) {
-            ConsoleService::printTestResult(testName: 'test', errorMessage: "Table: $table_input not found in config");
             return;
         }
     }
