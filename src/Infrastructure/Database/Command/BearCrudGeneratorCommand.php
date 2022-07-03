@@ -9,6 +9,7 @@ use GuardsmanPanda\LarabearDev\Infrastructure\Database\Internal\EloquentModelInt
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\File;
+use Ramsey\Collection\Set;
 
 class BearCrudGeneratorCommand extends Command {
     protected $signature = 'bear:crud {table_name} {connection_name?}';
@@ -55,29 +56,59 @@ class BearCrudGeneratorCommand extends Command {
         }
 
         ConsoleService::printH2(headline: 'Generating Crud..');
-        $this->generateCreator(model: $model, allModels: $models, directory: $directory);
-        $this->generateUpdater(model: $model, allModels: $models, directory: $directory);
+        $this->generateCreator(model: $model, directory: $directory);
+        $this->generateUpdater(model: $model, directory: $directory);
         $this->generateDeleter(model: $model, directory: $directory);
     }
 
 
-    private function generateCreator(EloquentModelInternal $model, array $allModels, string $directory): void {
+    private function generateCreator(EloquentModelInternal $model, string $directory): void {
         $filename = $model->getModelClassName() . 'Creator.php';
         $filepath = $directory . '/' . $filename;
         if (File::exists($filepath)) {
             ConsoleService::printTestResult(testName: "File $filename Exists", warningMessage: "File: [$filename] already exists. [$filepath]");
             return;
         }
-        $content = $this->classHeader($model);
+        $key_col = $model->getPrimaryKeyColumnName();
+        $skipColumns = [$key_col, 'created_at', 'updated_at', 'deleted_at'];
+
+        $headers = new Set(setType: 'string');
+
+        if ($model->getColumns()[$key_col]->nativeDataType === 'uuid') {
+            $headers->add("use Illuminate\\Support\\Str;");
+        }
+
+        $columns = [];
+        foreach ($model->getColumns() as $column) {
+            if ($column->isNullable === false && !in_array(needle: $column->columnName, haystack: $skipColumns, strict: true)) {
+                $columns[] = $column;
+            }
+
+        }
+        foreach ($model->getColumns() as $column) {
+            if ($column->isNullable === true && !in_array(needle: $column->columnName, haystack: $skipColumns, strict: true)) {
+                $columns[] = $column;
+            }
+        }
+
+        $content = $this->classHeader($model, $headers);
         $content .= 'class ' . $model->getModelClassName() . 'Creator {' . PHP_EOL;
         $content .= "    public static function create(" . PHP_EOL;
+        foreach ($columns as $column) {
+            if ($column->isNullable) {
+                $content .= "    $column->phpDataType|null \$$column->columnName = null," . PHP_EOL;
+            } else {
+                $content .= "    $column->phpDataType \$$column->columnName," . PHP_EOL;
+            }
+        }
+        $content = substr($content, 0, -2);
+        $content .= PHP_EOL;
         $content .= "    ): {$model->getModelClassName()} {" . PHP_EOL;
         $content .= "        BearDBService::mustBeInTransaction();" . PHP_EOL;
         $content .= "        \$model = new {$model->getModelClassName()}();" . PHP_EOL;
 
-        $key_col = $model->getPrimaryKeyColumnName();
         if ($model->getColumns()[$key_col]->nativeDataType === 'uuid') {
-            $content .= "        \$model->{$key_col} = Str::uuid()->toString();" . PHP_EOL;
+            $content .= "        \$model->$key_col = Str::uuid()->toString();" . PHP_EOL;
         }
 
         $content .= "        \$model->save();" . PHP_EOL;
@@ -89,14 +120,15 @@ class BearCrudGeneratorCommand extends Command {
     }
 
 
-    private function generateUpdater(EloquentModelInternal $model, array $allModels, string $directory): void {
+    private function generateUpdater(EloquentModelInternal $model, string $directory): void {
         $filename = $model->getModelClassName() . 'Updater.php';
         $filepath = $directory . '/' . $filename;
         if (File::exists($filepath)) {
             ConsoleService::printTestResult(testName: "File $filename Exists", warningMessage: "File: [$filename] already exists. [$filepath]");
             return;
         }
-        $content = $this->classHeader($model);
+        $headers = new Set(setType: 'string');
+        $content = $this->classHeader($model, headers: $headers)  . PHP_EOL;
         $content .= 'class ' . $model->getModelClassName() . 'Updater {' . PHP_EOL;
         $content .= "    public function __construct(private readonly {$model->getModelClassName()} \$model) {" . PHP_EOL;
         $content .= "        BearDBService::mustBeInTransaction();" . PHP_EOL;
@@ -118,7 +150,8 @@ class BearCrudGeneratorCommand extends Command {
             ConsoleService::printTestResult(testName: '', warningMessage: "File [$filename] already exists.  [$filepath]");
             return;
         }
-        $content = $this->classHeader($model);
+        $headers = new Set(setType: 'string');
+        $content = $this->classHeader(model: $model, headers: $headers) . PHP_EOL;
         $content .= 'class ' . $model->getModelClassName() . 'Deleter {' . PHP_EOL;
         $content .= "    public static function delete({$model->getModelClassName()} \$model): void {" . PHP_EOL;
         $content .= "        BearDBService::mustBeInTransaction();" . PHP_EOL;
@@ -130,12 +163,23 @@ class BearCrudGeneratorCommand extends Command {
     }
 
 
-    private function classHeader(EloquentModelInternal $model): string {
+    private function classHeader(EloquentModelInternal $model, Set $headers): string {
+        $headers->add("use GuardsmanPanda\\Larabear\\Infrastructure\Database\\Service\\BearDBService;");
+        $headers->add("use {$model->getNameSpace()}\\{$model->getModelClassName()};");
         $namespace = RegexService::extractFirst('/(.*)Models?/', $model->getNameSpace()) . 'Crud';
         $content = '<?php' . PHP_EOL . PHP_EOL;
         $content .= 'namespace ' . $namespace . ';' . PHP_EOL . PHP_EOL;
-        $content .= "use {$model->getNameSpace()}\\{$model->getModelClassName()}; " . PHP_EOL;
-        $content .= "use GuardsmanPanda\Larabear\Infrastructure\Database\Service\BearDBService;" . PHP_EOL . PHP_EOL;
+        $hh = $headers->toArray();
+        sort($hh);
+        $hh = array_unique(array_map(static function ($ele) {
+            return trim($ele);
+        }, $hh));
+        foreach ($hh as $header) {
+            if ($header === '') {
+                continue;
+            }
+            $content .= $header . PHP_EOL;
+        }
         return $content;
     }
 }

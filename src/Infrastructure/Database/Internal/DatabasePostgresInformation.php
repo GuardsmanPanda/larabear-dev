@@ -19,7 +19,12 @@ class DatabasePostgresInformation extends DatabaseBaseInformation {
     }
 
     public function getColumnsForTable(string $tableName): array {
-        $res = DB::connection(name: $this->connectionName)->select(query: "SELECT column_name, data_type, is_nullable = 'YES' AS is_nullable FROM information_schema.columns WHERE table_catalog = ? AND table_name = ?", bindings: [$this->databaseName, $tableName]);
+        $res = DB::connection(name: $this->connectionName)->select(query: "
+            SELECT column_name, data_type, is_nullable = 'YES' AS is_nullable
+            FROM information_schema.columns
+            WHERE table_catalog = ? AND table_name = ?
+            ORDER BY ordinal_position
+        ", bindings: [$this->databaseName, $tableName]);
         $tmp = [];
         foreach ($res as $row) {
             $tmp[] = new EloquentModelColumnInternal(
