@@ -184,7 +184,7 @@ class EloquentModelInternal {
             return $a->sortOrder - $b->sortOrder;
         });
         foreach ($this->columns as $column) {
-            $content .= " * @property " . $column->dataType;
+            $content .= " * @property " . $column->phpDataType;
             if ($column->isNullable) {
                 $content .= "|null";
             }

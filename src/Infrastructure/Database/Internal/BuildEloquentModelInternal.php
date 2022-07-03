@@ -38,7 +38,7 @@ class BuildEloquentModelInternal {
             }
             $dto = $models[$constraint->table_name];
             if ($constraint->constraint_type === 'PRIMARY KEY') {
-                $dto->setPrimaryKeyInformation(primaryKeyColumnName: $constraint->column_name, primaryKeyType: $dto->getColumns()[$constraint->column_name]->dataType);
+                $dto->setPrimaryKeyInformation(primaryKeyColumnName: $constraint->column_name, primaryKeyType: $dto->getColumns()[$constraint->column_name]->phpDataType);
             }
         }
         return $models;
@@ -47,7 +47,7 @@ class BuildEloquentModelInternal {
     private static function checkNoDefinedTablesMissingFromDB(array $tableConfig, array $dbTables): void {
         foreach ($tableConfig as $table_name => $table_config) {
             if (!in_array(needle: $table_name, haystack: $dbTables, strict: true)) {
-                throw new RuntimeException(message: "Table $table_name not found in database, but is defined in config/bear-dev.php => [eloquent-model-generator]");
+                throw new RuntimeException(message: "Table [$table_name]not found in database, but is defined in config/bear-dev.php => [eloquent-model-generator]");
             }
         }
     }

@@ -24,7 +24,8 @@ class DatabasePostgresInformation extends DatabaseBaseInformation {
         foreach ($res as $row) {
             $tmp[] = new EloquentModelColumnInternal(
                 columnName: $row->column_name,
-                dataType: $this->databaseTypeToPhpType(databaseType: $row->data_type),
+                nativeDataType: $row->data_type,
+                phpDataType: $this->databaseTypeToPhpType(databaseType: $row->data_type),
                 sortOrder: $this->postgresTypeSortOrder($row->data_type),
                 isNullable: $row->is_nullable,
                 requiredHeader: $this->postgresTypeToPhpHeader($row->data_type),
