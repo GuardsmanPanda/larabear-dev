@@ -92,6 +92,9 @@ class BearCrudGeneratorCommand extends Command {
         $content .= PHP_EOL;
         $content .= "    ): {$model->getModelClassName()} {" . PHP_EOL;
         $content .= "        BearDBService::mustBeInTransaction();" . PHP_EOL;
+        $content .= "        if (!Req::isWriteRequest()) {" . PHP_EOL;
+        $content .= "            throw new RuntimeException(message: 'Database write operations should not be performed in read-only [GET, HEAD, OPTIONS] requests.');" . PHP_EOL;
+        $content .= "        }" . PHP_EOL;
         $content .= "        \$model = new {$model->getModelClassName()}();" . PHP_EOL;
         if ($model->getColumns()[$key_col]->nativeDataType === 'uuid') {
             $content .= "        \$model->$key_col = Str::uuid()->toString();" . PHP_EOL;
@@ -124,6 +127,9 @@ class BearCrudGeneratorCommand extends Command {
         $content .= 'class ' . $model->getModelClassName() . 'Updater {' . PHP_EOL;
         $content .= "    public function __construct(private readonly {$model->getModelClassName()} \$model) {" . PHP_EOL;
         $content .= "        BearDBService::mustBeInTransaction();" . PHP_EOL;
+        $content .= "        if (!Req::isWriteRequest()) {" . PHP_EOL;
+        $content .= "            throw new RuntimeException(message: 'Database write operations should not be performed in read-only [GET, HEAD, OPTIONS] requests.');" . PHP_EOL;
+        $content .= "        }" . PHP_EOL;
         $content .= '    }' . PHP_EOL . PHP_EOL;
 
         foreach ($this->getModifiableColumnArray($model) as $column) {
@@ -159,6 +165,9 @@ class BearCrudGeneratorCommand extends Command {
         $content .= 'class ' . $model->getModelClassName() . 'Deleter {' . PHP_EOL;
         $content .= "    public static function delete({$model->getModelClassName()} \$model): void {" . PHP_EOL;
         $content .= "        BearDBService::mustBeInTransaction();" . PHP_EOL;
+        $content .= "        if (!Req::isWriteRequest()) {" . PHP_EOL;
+        $content .= "            throw new RuntimeException(message: 'Database write operations should not be performed in read-only [GET, HEAD, OPTIONS] requests.');" . PHP_EOL;
+        $content .= "        }" . PHP_EOL;
         $content .= "        \$model->delete();" . PHP_EOL;
         $content .= '    }' . PHP_EOL;
         $content .= '}' . PHP_EOL;
@@ -168,8 +177,10 @@ class BearCrudGeneratorCommand extends Command {
 
 
     private function classHeader(EloquentModelInternal $model, Set $headers): string {
-        $headers->add("use GuardsmanPanda\\Larabear\\Infrastructure\Database\\Service\\BearDBService;");
+        $headers->add("use GuardsmanPanda\\Larabear\\Infrastructure\\Database\\Service\\BearDBService;");
+        $headers->add("use GuardsmanPanda\\Larabear\\Infrastructure\\Http\\Service\\Req;");
         $headers->add("use {$model->getNameSpace()}\\{$model->getModelClassName()};");
+        $headers->add("use RuntimeException;");
         $namespace = RegexService::extractFirst('/(.*)Models?/', $model->getNameSpace()) . 'Crud';
         $content = '<?php' . PHP_EOL . PHP_EOL;
         $content .= 'namespace ' . $namespace . ';' . PHP_EOL . PHP_EOL;
