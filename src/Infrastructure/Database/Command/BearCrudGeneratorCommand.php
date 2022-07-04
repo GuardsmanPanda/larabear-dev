@@ -9,6 +9,7 @@ use GuardsmanPanda\LarabearDev\Infrastructure\Database\Internal\EloquentModelInt
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Str;
 use Ramsey\Collection\Set;
 
 class BearCrudGeneratorCommand extends Command {
@@ -69,32 +70,18 @@ class BearCrudGeneratorCommand extends Command {
             ConsoleService::printTestResult(testName: "File $filename Exists", warningMessage: "File: [$filename] already exists. [$filepath]");
             return;
         }
-        $key_col = $model->getPrimaryKeyColumnName();
-        $skipColumns = [$key_col, 'created_at', 'updated_at', 'deleted_at'];
 
         $headers = new Set(setType: 'string');
-
+        $key_col = $model->getPrimaryKeyColumnName();
         if ($model->getColumns()[$key_col]->nativeDataType === 'uuid') {
             $headers->add("use Illuminate\\Support\\Str;");
-        }
-
-        $columns = [];
-        foreach ($model->getColumns() as $column) {
-            if ($column->isNullable === false && !in_array(needle: $column->columnName, haystack: $skipColumns, strict: true)) {
-                $columns[] = $column;
-            }
-
-        }
-        foreach ($model->getColumns() as $column) {
-            if ($column->isNullable === true && !in_array(needle: $column->columnName, haystack: $skipColumns, strict: true)) {
-                $columns[] = $column;
-            }
         }
 
         $content = $this->classHeader($model, $headers);
         $content .= 'class ' . $model->getModelClassName() . 'Creator {' . PHP_EOL;
         $content .= "    public static function create(" . PHP_EOL;
-        foreach ($columns as $column) {
+
+        foreach ($this->getModifiableColumnArray($model) as $column) {
             if ($column->isNullable) {
                 $content .= "    $column->phpDataType|null \$$column->columnName = null," . PHP_EOL;
             } else {
@@ -106,10 +93,15 @@ class BearCrudGeneratorCommand extends Command {
         $content .= "    ): {$model->getModelClassName()} {" . PHP_EOL;
         $content .= "        BearDBService::mustBeInTransaction();" . PHP_EOL;
         $content .= "        \$model = new {$model->getModelClassName()}();" . PHP_EOL;
-
         if ($model->getColumns()[$key_col]->nativeDataType === 'uuid') {
             $content .= "        \$model->$key_col = Str::uuid()->toString();" . PHP_EOL;
         }
+
+        $content .= PHP_EOL;
+        foreach ($this->getModifiableColumnArray($model) as $column) {
+            $content .= "        \$model->$column->columnName = \$$column->columnName;" . PHP_EOL;
+        }
+        $content .= PHP_EOL;
 
         $content .= "        \$model->save();" . PHP_EOL;
         $content .= "        return \$model;" . PHP_EOL;
@@ -128,11 +120,23 @@ class BearCrudGeneratorCommand extends Command {
             return;
         }
         $headers = new Set(setType: 'string');
-        $content = $this->classHeader($model, headers: $headers)  . PHP_EOL;
+        $content = $this->classHeader($model, headers: $headers);
         $content .= 'class ' . $model->getModelClassName() . 'Updater {' . PHP_EOL;
         $content .= "    public function __construct(private readonly {$model->getModelClassName()} \$model) {" . PHP_EOL;
         $content .= "        BearDBService::mustBeInTransaction();" . PHP_EOL;
         $content .= '    }' . PHP_EOL . PHP_EOL;
+
+        foreach ($this->getModifiableColumnArray($model) as $column) {
+            $functionName = "set" . Str::studly($column->columnName);
+            if ($column->isNullable) {
+                $content .= "    public function $functionName($column->phpDataType|null \$$column->columnName): void {" . PHP_EOL;
+            } else {
+                $content .= "    public function $functionName($column->phpDataType \$$column->columnName): void {" . PHP_EOL;
+            }
+            $content .= "        \$this->model->$column->columnName = \$$column->columnName;" . PHP_EOL;
+            $content .= '    }' . PHP_EOL . PHP_EOL;
+        }
+
         $content .= "    public function save(): {$model->getModelClassName()} {" . PHP_EOL;
         $content .= "        \$this->model->save();" . PHP_EOL;
         $content .= "        return \$this->model;" . PHP_EOL;
@@ -151,7 +155,7 @@ class BearCrudGeneratorCommand extends Command {
             return;
         }
         $headers = new Set(setType: 'string');
-        $content = $this->classHeader(model: $model, headers: $headers) . PHP_EOL;
+        $content = $this->classHeader(model: $model, headers: $headers);
         $content .= 'class ' . $model->getModelClassName() . 'Deleter {' . PHP_EOL;
         $content .= "    public static function delete({$model->getModelClassName()} \$model): void {" . PHP_EOL;
         $content .= "        BearDBService::mustBeInTransaction();" . PHP_EOL;
@@ -180,6 +184,24 @@ class BearCrudGeneratorCommand extends Command {
             }
             $content .= $header . PHP_EOL;
         }
-        return $content;
+        return $content . PHP_EOL;
+    }
+
+
+    private function getModifiableColumnArray(EloquentModelInternal $model): array {
+        $columns = [];
+        $skipColumns = [$model->getPrimaryKeyColumnName(), 'created_at', 'updated_at', 'deleted_at'];
+        foreach ($model->getColumns() as $column) {
+            if ($column->isNullable === false && !in_array(needle: $column->columnName, haystack: $skipColumns, strict: true)) {
+                $columns[] = $column;
+            }
+
+        }
+        foreach ($model->getColumns() as $column) {
+            if ($column->isNullable === true && !in_array(needle: $column->columnName, haystack: $skipColumns, strict: true)) {
+                $columns[] = $column;
+            }
+        }
+        return $columns;
     }
 }
