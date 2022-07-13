@@ -8,9 +8,11 @@ use RuntimeException;
 
 class DatabasePostgresInformation extends DatabaseBaseInformation {
     private string $databaseName;
+    private string $schemaName;
 
     public function __construct(private readonly string $connectionName) {
         $this->databaseName = Config::get(key: "database.connections.$connectionName.database");
+        $this->schemaName = Config::get(key: "database.connections.$connectionName.schema") ?? 'public';
     }
 
     public function getAllTableNames(): array {
@@ -40,6 +42,15 @@ class DatabasePostgresInformation extends DatabaseBaseInformation {
         return $tmp;
     }
 
+    public function getAllPrimaryKeys(): array {
+        return DB::connection(name: $this->connectionName)->select(query: "
+            SELECT
+                kcu.table_name,
+                kcu.column_name
+            FROM information_schema.key_column_usage kcu
+            WHERE kcu.table_catalog = ? AND kcu.table_schema = ?
+        ", bindings: [$this->databaseName, $this->schemaName]);
+    }
 
     public function getAllConstraints(): array {
         return DB::connection(name: $this->connectionName)->select(query: "
@@ -51,10 +62,10 @@ class DatabasePostgresInformation extends DatabaseBaseInformation {
                 ccu.table_name as foreign_table,
                 ccu.column_name as foreign_key
             FROM information_schema.table_constraints tc
-            JOIN information_schema.key_column_usage kcu ON kcu.constraint_name = tc.constraint_name AND tc.table_schema = kcu.table_schema
-            JOIN information_schema.constraint_column_usage AS ccu ON ccu.constraint_name = tc.constraint_name AND ccu.table_schema = tc.table_schema
-            WHERE tc.table_catalog = ?
-        ", bindings: [$this->databaseName]);
+            JOIN information_schema.key_column_usage kcu ON kcu.constraint_name = tc.constraint_name
+            JOIN information_schema.constraint_column_usage AS ccu ON ccu.constraint_name = tc.constraint_name
+            WHERE tc.table_catalog = ? AND tc.table_schema = ?
+        ", bindings: [$this->databaseName, $this->schemaName]);
     }
 
     public function getDateFormat(): string {

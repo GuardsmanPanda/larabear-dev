@@ -15,6 +15,7 @@ abstract class DatabaseBaseInformation {
 
     abstract public function getAllTableNames(): array;
     abstract public function getColumnsForTable(string $tableName): array;
+    abstract public function getAllPrimaryKeys(): array;
     abstract public function getAllConstraints(): array;
 
     abstract public function getDateFormat(): string;

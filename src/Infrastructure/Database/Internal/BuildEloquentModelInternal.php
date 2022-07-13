@@ -32,14 +32,12 @@ class BuildEloquentModelInternal {
             $models[$table_name] = $dto;
         }
 
-        foreach ($dbInfo->getAllConstraints() as $constraint) {
+        foreach ($dbInfo->getAllPrimaryKeys() as $constraint) {
             if (!array_key_exists($constraint->table_name, $models)) {
                 continue;
             }
             $dto = $models[$constraint->table_name];
-            if ($constraint->constraint_type === 'PRIMARY KEY') {
-                $dto->setPrimaryKeyInformation(primaryKeyColumnName: $constraint->column_name, primaryKeyType: $dto->getColumns()[$constraint->column_name]->phpDataType);
-            }
+            $dto->setPrimaryKeyInformation(primaryKeyColumnName: $constraint->column_name, primaryKeyType: $dto->getColumns()[$constraint->column_name]->phpDataType);
         }
         return $models;
     }
