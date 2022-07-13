@@ -7,13 +7,14 @@ use GuardsmanPanda\Larabear\Infrastructure\Console\Service\ConsoleService;
 use GuardsmanPanda\LarabearDev\Infrastructure\Database\Internal\BuildEloquentModelInternal;
 use GuardsmanPanda\LarabearDev\Infrastructure\Database\Internal\EloquentModelInternal;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 use Ramsey\Collection\Set;
 
 class BearCrudGeneratorCommand extends Command {
-    protected $signature = 'bear:crud {table_name} {connection_name?}';
+    protected $signature = 'bear:crud {table_name} {connection_name?} {--service}';
     protected $description = 'Generate Crud Classes';
 
     public function handle(): void {
@@ -44,7 +45,9 @@ class BearCrudGeneratorCommand extends Command {
 
         $models = BuildEloquentModelInternal::buildAll(connectionName: $connectionUse, tableConfig: $connectionUseConfig);
         $model = $models[$table_input];
-        $directory = RegexService::extractFirst(regex: '~(.*?)(/Models?)~', subject: $model->getModelDirectory()) . '/Crud';
+        $location = RegexService::extractFirst(regex: '~(.*?)/[^/]+$~', subject:$model->getModelLocation()) . '/Crud';
+        $directory = App::basePath(path: trim(string: $location, characters: '/'));
+
 
         if (!is_dir($directory)) {
             if (!mkdir($directory) && !is_dir($directory)) {
@@ -56,10 +59,17 @@ class BearCrudGeneratorCommand extends Command {
             ConsoleService::printTestResult(testName: "Directory $directory Exists");
         }
 
-        ConsoleService::printH2(headline: 'Generating Crud..');
+        ConsoleService::printH2(headline: 'Generating Domain Crud..');
         $this->generateCreator(model: $model, directory: $directory);
         $this->generateUpdater(model: $model, directory: $directory);
         $this->generateDeleter(model: $model, directory: $directory);
+
+        ConsoleService::printH2(headline: 'Generating Service Crud..');
+        if ($this->option(key: 'service')) {
+            $this->generateServiceCrud(model: $model);
+        } else {
+            ConsoleService::printTestResult(testName: '', warningMessage: '--service option not set.');
+        }
     }
 
 
@@ -72,8 +82,7 @@ class BearCrudGeneratorCommand extends Command {
         }
 
         $headers = new Set(setType: 'string');
-        $key_col = $model->getPrimaryKeyColumnName();
-        if ($model->getColumns()[$key_col]->nativeDataType === 'uuid') {
+        if (!$model->hasCompositePrimaryKey() && $model->getColumns()[$model->getPrimaryKeyColumns()[0]]->nativeDataType === 'uuid') {
             $headers->add("use Illuminate\\Support\\Str;");
         }
 
@@ -81,7 +90,7 @@ class BearCrudGeneratorCommand extends Command {
         $content .= 'class ' . $model->getModelClassName() . 'Creator {' . PHP_EOL;
         $content .= "    public static function create(" . PHP_EOL;
 
-        foreach ($this->getModifiableColumnArray($model) as $column) {
+        foreach ($this->getModifiableColumnArray(model: $model, forCreator: true) as $column) {
             if ($column->isNullable) {
                 $content .= "    $column->phpDataType|null \$$column->columnName = null," . PHP_EOL;
             } else {
@@ -96,8 +105,9 @@ class BearCrudGeneratorCommand extends Command {
         $content .= "            throw new RuntimeException(message: 'Database write operations should not be performed in read-only [GET, HEAD, OPTIONS] requests.');" . PHP_EOL;
         $content .= "        }" . PHP_EOL;
         $content .= "        \$model = new {$model->getModelClassName()}();" . PHP_EOL;
-        if ($model->getColumns()[$key_col]->nativeDataType === 'uuid') {
-            $content .= "        \$model->$key_col = Str::uuid()->toString();" . PHP_EOL;
+
+        if (!$model->hasCompositePrimaryKey() && $model->getColumns()[$model->getPrimaryKeyColumns()[0]]->nativeDataType === 'uuid') {
+            $content .= "        \$model->{$model->getPrimaryKeyColumns()[0]} = Str::uuid()->toString();" . PHP_EOL;
         }
 
         $content .= PHP_EOL;
@@ -157,7 +167,7 @@ class BearCrudGeneratorCommand extends Command {
         $filename = $model->getModelClassName() . 'Deleter.php';
         $filepath = $directory . '/' . $filename;
         if (File::exists($filepath)) {
-            ConsoleService::printTestResult(testName: '', warningMessage: "File [$filename] already exists.  [$filepath]");
+            ConsoleService::printTestResult(testName: '', warningMessage: "File: [$filename] already exists.  [$filepath]");
             return;
         }
         $headers = new Set(setType: 'string');
@@ -176,12 +186,47 @@ class BearCrudGeneratorCommand extends Command {
     }
 
 
+    private function generateServiceCrud(EloquentModelInternal $model): void {
+        $filename = $model->getModelClassName() . 'Crud.php';
+        $location = RegexService::extractFirst(regex: '~(.*?)/.+$~', subject:$model->getModelLocation()) . '/Crud';
+        $location = preg_replace(pattern: '~'.Config::get(key:'bear-dev.data_access_layer_folder') . '~', replacement: Config::get(key:'bear-dev.application_layer_folder'), subject: $location, limit: 1);
+        $filepath = App::basePath(path: trim(string: $location, characters: '/')) . '/' . $filename;
+        if (File::exists($filepath)) {
+            ConsoleService::printTestResult(testName: '', warningMessage: "File: [$filename] already exists.  [$filepath]");
+            return;
+        }
+        $headers = new Set(setType: 'string');
+        $headers->add("use GuardsmanPanda\\Larabear\\Infrastructure\\Http\\Service\\Req;");
+        $headers->add("use {$model->getNameSpace()}\\{$model->getModelClassName()};");
+
+        $content = '<?php' . PHP_EOL . PHP_EOL;
+
+        // HEADERS
+        $hh = $headers->toArray();
+        sort($hh);
+        $hh = array_unique(array_map(static function ($ele) {
+            return trim($ele);
+        }, $hh));
+        foreach ($hh as $header) {
+            if ($header === '') {
+                continue;
+            }
+            $content .= $header . PHP_EOL;
+        }
+
+        // CREATE FROM REQUEST
+
+        File::put($filepath, $content);
+        ConsoleService::printTestResult(testName: "File [$filename] created.");
+    }
+
+
     private function classHeader(EloquentModelInternal $model, Set $headers): string {
         $headers->add("use GuardsmanPanda\\Larabear\\Infrastructure\\Database\\Service\\BearDBService;");
         $headers->add("use GuardsmanPanda\\Larabear\\Infrastructure\\Http\\Service\\Req;");
         $headers->add("use {$model->getNameSpace()}\\{$model->getModelClassName()};");
         $headers->add("use RuntimeException;");
-        $namespace = RegexService::extractFirst('/(.*)Models?/', $model->getNameSpace()) . 'Crud';
+        $namespace = RegexService::extractFirst('~(.*)/[^/]+$~', $model->getNameSpace()) . '/Crud';
         $content = '<?php' . PHP_EOL . PHP_EOL;
         $content .= 'namespace ' . $namespace . ';' . PHP_EOL . PHP_EOL;
         $hh = $headers->toArray();
@@ -199,9 +244,13 @@ class BearCrudGeneratorCommand extends Command {
     }
 
 
-    private function getModifiableColumnArray(EloquentModelInternal $model): array {
+    private function getModifiableColumnArray(EloquentModelInternal $model, bool $forCreator = false): array {
+        if ($forCreator) {
+            $skipColumns = ['created_at', 'updated_at', 'deleted_at'];
+        } else {
+            $skipColumns = $model->getPrimaryKeyColumns() + ['created_at', 'updated_at', 'deleted_at'];
+        }
         $columns = [];
-        $skipColumns = [$model->getPrimaryKeyColumnName(), 'created_at', 'updated_at', 'deleted_at'];
         foreach ($model->getColumns() as $column) {
             if ($column->isNullable === false && !in_array(needle: $column->columnName, haystack: $skipColumns, strict: true)) {
                 $columns[] = $column;

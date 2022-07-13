@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\App;
 use Ramsey\Collection\Set;
 
 class EloquentModelInternal {
-    private string $primaryKeyColumnName;
+    private array $primaryKeyColumns = [];
     private string $primaryKeyType;
     private bool $timestamps = false;
     private Set $headers;
@@ -38,6 +38,10 @@ class EloquentModelInternal {
         return $this->modelClassName;
     }
 
+    public function getModelLocation(): string {
+        return $this->modelLocation;
+    }
+
     public function getModelDirectory(): string {
         return App::basePath(path: trim(string: $this->modelLocation, characters: '/'));
     }
@@ -50,15 +54,20 @@ class EloquentModelInternal {
         return str_replace('/', '\\', ucfirst($this->modelLocation));
     }
 
-    public function getPrimaryKeyColumnName(): string {
-        return $this->primaryKeyColumnName;
+
+    public function hasCompositePrimaryKey(): bool {
+        return count($this->primaryKeyColumns) > 1;
     }
 
+    public function getPrimaryKeyColumns(): array {
+        return $this->primaryKeyColumns;
+    }
 
     public function setPrimaryKeyInformation(string $primaryKeyColumnName, string $primaryKeyType): void {
-        $this->primaryKeyColumnName = $primaryKeyColumnName;
+        $this->primaryKeyColumns[] = $primaryKeyColumnName;
         $this->primaryKeyType = $primaryKeyType;
     }
+
 
     public function addHeader(string $header): void {
         $this->headers->add($header);
@@ -100,18 +109,24 @@ class EloquentModelInternal {
         $content .= "    protected \$connection = '$this->connectionName';" . PHP_EOL;
         $content .= "    protected \$table = '$this->tableName';" . PHP_EOL;
 
-        if ($this->primaryKeyColumnName !== 'id') {
-            $content .= "    protected \$primaryKey = '$this->primaryKeyColumnName';" . PHP_EOL;
-        }
-        if ($this->primaryKeyType !== 'int') {
-            $content .= "    protected \$keyType = '$this->primaryKeyType';" . PHP_EOL;
-        }
-        if ($this->primaryKeyColumnName !== 'id' || $this->primaryKeyType !== 'int') {
+
+        if (count($this->primaryKeyColumns) === 1) {
+            $primaryKeyColumn = $this->primaryKeyColumns[0];
+            $content .= "    protected \$primaryKey = '$primaryKeyColumn';" . PHP_EOL;
+            if ($this->primaryKeyType !== 'int') {
+                $content .= "    protected \$keyType = '$this->primaryKeyType';" . PHP_EOL;
+            }
+            if ($primaryKeyColumn !== 'id' || $this->primaryKeyType !== 'int') {
+                $content .= "    public \$incrementing = false;" . PHP_EOL;
+            }
+        } else {
+            $content .= "    protected \$primaryKey = ['" . implode(separator: "', '", array: $this->primaryKeyColumns) . "'];" . PHP_EOL;
+            $content .= "    protected \$keyType = 'array';" . PHP_EOL;
             $content .= "    public \$incrementing = false;" . PHP_EOL;
         }
 
-        $content .= "    protected \$dateFormat = '$this->dateFormat';" . PHP_EOL;
 
+        $content .= "    protected \$dateFormat = '$this->dateFormat';" . PHP_EOL;
         if ($this->timestamps === false) {
             $content .= "    public \$timestamps = false;" . PHP_EOL;
         }
@@ -127,7 +142,7 @@ class EloquentModelInternal {
             $content .= "    ];" . PHP_EOL . PHP_EOL;
         }
 
-        $content .= "    protected \$guarded = ['$this->primaryKeyColumnName','updated_at','created_at','deleted_at'];" . PHP_EOL;
+        $content .= "    protected \$guarded = ['" . implode(separator: "', '", array: $this->primaryKeyColumns) . ", 'updated_at', 'created_at', 'deleted_at'];" . PHP_EOL;
         $content .= "}" . PHP_EOL;
         return $content;
     }

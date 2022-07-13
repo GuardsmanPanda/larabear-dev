@@ -1,4 +1,4 @@
-# Very short description of the package
+# Larabear Dev
 
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/guardsmanpanda/larabear-dev.svg?style=flat-square)](https://packagist.org/packages/guardsmanpanda/larabear-dev)
 [![Total Downloads](https://img.shields.io/packagist/dt/guardsmanpanda/larabear-dev.svg?style=flat-square)](https://packagist.org/packages/guardsmanpanda/larabear-dev)
@@ -22,7 +22,3 @@ composer require guardsmanpanda/larabear-dev --dev dev-main
 ## License
 
 The MIT License (MIT). Please see [License File](LICENSE.md) for more information.
-
-## Laravel Package Boilerplate
-
-This package was generated using the [Laravel Package Boilerplate](https://laravelpackageboilerplate.com).
