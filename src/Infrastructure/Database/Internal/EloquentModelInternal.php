@@ -176,12 +176,9 @@ class EloquentModelInternal {
         $content .= PHP_EOL . "/**" . PHP_EOL;
         $content .= " * AUTO GENERATED FILE DO NOT MODIFY" . PHP_EOL;
         $content .= " *" . PHP_EOL;
-        if ($this->hasCompositePrimaryKey()) {
-            $content .= " * @method static $this->modelClassName findOrNew(array \$ids, array \$columns = ['*'])" . PHP_EOL;
-        } else {
+        if (!$this->hasCompositePrimaryKey()) {
             $content .= " * @method static $this->modelClassName|null find($this->primaryKeyType \$id, array \$columns = ['*'])" . PHP_EOL;
             $content .= " * @method static $this->modelClassName findOrFail($this->primaryKeyType \$id, array \$columns = ['*'])" . PHP_EOL;
-            $content .= " * @method static $this->modelClassName findOrNew($this->primaryKeyType \$id, array \$columns = ['*'])" . PHP_EOL;
         }
         $content .= " * @method static $this->modelClassName sole(array \$columns = ['*'])" . PHP_EOL;
         $content .= " * @method static $this->modelClassName|null first(array \$columns = ['*'])" . PHP_EOL;
@@ -271,7 +268,7 @@ class EloquentModelInternal {
         $content .= "            if (isset(\$this->\$key)) {" . PHP_EOL;
         $content .= "                \$query->where(column: \$key, operator: '=', value: \$this->\$key);" . PHP_EOL;
         $content .= "            } else {" . PHP_EOL;
-        $content .= "                throw RuntimeException::create(message: 'Missing primary key value for \$key');" . PHP_EOL;
+        $content .= "                throw new RuntimeException(message: \"Missing primary key value for \$key\");" . PHP_EOL;
         $content .= "            }" . PHP_EOL;
         $content .= "        }" . PHP_EOL;
         $content .= "        return \$query;" . PHP_EOL;
