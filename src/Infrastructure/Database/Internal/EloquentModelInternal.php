@@ -142,7 +142,7 @@ class EloquentModelInternal {
             $content .= "    ];" . PHP_EOL . PHP_EOL;
         }
 
-        $content .= "    protected \$guarded = ['" . implode(separator: "', '", array: $this->primaryKeyColumns) . ", 'updated_at', 'created_at', 'deleted_at'];" . PHP_EOL;
+        $content .= "    protected \$guarded = ['" . implode(separator: "', '", array: $this->primaryKeyColumns) . "', 'updated_at', 'created_at', 'deleted_at'];" . PHP_EOL;
         $content .= "}" . PHP_EOL;
         return $content;
     }

@@ -12,7 +12,6 @@ class BearPhpStanCommand extends Command {
     public function handle(): int {
         $this->info("Running PHPStan on the application");
         exec(command: PHP_BINARY . ' ' . App::basePath(path: 'vendor/bin/') . "phpstan analyse --ansi", output: $res, result_code: $code);
-        //print the output
         foreach ($res as $line) {
             $this->output->writeln(messages: $line);
         }

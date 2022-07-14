@@ -48,11 +48,12 @@ class DatabasePostgresInformation extends DatabaseBaseInformation {
                 kcu.table_name,
                 kcu.column_name
             FROM information_schema.key_column_usage kcu
-            WHERE kcu.table_catalog = ? AND kcu.table_schema = ?
+            LEFT JOIN information_schema.table_constraints tc ON kcu.constraint_name = tc.constraint_name
+            WHERE kcu.table_catalog = ? AND kcu.table_schema = ? AND tc.constraint_type = 'PRIMARY KEY'
         ", bindings: [$this->databaseName, $this->schemaName]);
     }
 
-    public function getAllConstraints(): array {
+    public function getAllForeignKeys(): array {
         return DB::connection(name: $this->connectionName)->select(query: "
             SELECT
                 tc.table_name,
@@ -64,7 +65,7 @@ class DatabasePostgresInformation extends DatabaseBaseInformation {
             FROM information_schema.table_constraints tc
             JOIN information_schema.key_column_usage kcu ON kcu.constraint_name = tc.constraint_name
             JOIN information_schema.constraint_column_usage AS ccu ON ccu.constraint_name = tc.constraint_name
-            WHERE tc.table_catalog = ? AND tc.table_schema = ?
+            WHERE tc.table_catalog = ? AND tc.table_schema = ? AND tc.constraint_type = 'FOREIGN KEY'
         ", bindings: [$this->databaseName, $this->schemaName]);
     }
 
