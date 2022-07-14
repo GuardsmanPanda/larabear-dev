@@ -157,6 +157,8 @@ class EloquentModelInternal {
         $content = "<?php" . PHP_EOL . PHP_EOL . 'namespace ' . $this->getNameSpace() . ';' . PHP_EOL . PHP_EOL;
         if ($this->hasCompositePrimaryKey()) {
             $this->headers->add('use Illuminate\Database\Eloquent\ModelNotFoundException;');
+            $this->headers->add('use Illuminate\Database\Eloquent\Builder as EloquentBuilder;');
+            $this->headers->add('use RuntimeException;');
         }
 
         $hh = $this->headers->toArray();
@@ -264,7 +266,7 @@ class EloquentModelInternal {
         $content .= "    }" . PHP_EOL . PHP_EOL;
 
 
-        $content .= "    protected function setKeysForSaveQuery(Builder \$query): Builder { " . PHP_EOL;
+        $content .= "    protected function setKeysForSaveQuery(\$query): EloquentBuilder { " . PHP_EOL;
         $content .= "        foreach (\$this->primaryKey as \$key) {" . PHP_EOL;
         $content .= "            if (isset(\$this->\$key)) {" . PHP_EOL;
         $content .= "                \$query->where(column: \$key, operator: '=', value: \$this->\$key);" . PHP_EOL;
@@ -273,7 +275,7 @@ class EloquentModelInternal {
         $content .= "            }" . PHP_EOL;
         $content .= "        }" . PHP_EOL;
         $content .= "        return \$query;" . PHP_EOL;
-        $content .= "    }" . PHP_EOL . PHP_EOL;
+        $content .= "    }" . PHP_EOL;
 
         return $content;
     }
