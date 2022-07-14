@@ -143,6 +143,11 @@ class EloquentModelInternal {
         }
 
         $content .= "    protected \$guarded = ['" . implode(separator: "', '", array: $this->primaryKeyColumns) . "', 'updated_at', 'created_at', 'deleted_at'];" . PHP_EOL;
+
+        if ($this->hasCompositePrimaryKey()) {
+            $content .= $this->getCompositeKeyMethods();
+        }
+
         $content .= "}" . PHP_EOL;
         return $content;
     }
@@ -166,9 +171,15 @@ class EloquentModelInternal {
         $content .= PHP_EOL . "/**" . PHP_EOL;
         $content .= " * AUTO GENERATED FILE DO NOT MODIFY" . PHP_EOL;
         $content .= " *" . PHP_EOL;
-        $content .= " * @method static $this->modelClassName|null find($this->primaryKeyType \$id, array \$columns = ['*'])" . PHP_EOL;
-        $content .= " * @method static $this->modelClassName findOrFail($this->primaryKeyType \$id, array \$columns = ['*'])" . PHP_EOL;
-        $content .= " * @method static $this->modelClassName findOrNew($this->primaryKeyType \$id, array \$columns = ['*'])" . PHP_EOL;
+        if ($this->hasCompositePrimaryKey()) {
+            $content .= " * @method static $this->modelClassName|null find(array \$ids, array \$columns = ['*'])" . PHP_EOL;
+            $content .= " * @method static $this->modelClassName findOrFail(array \$ids, array \$columns = ['*'])" . PHP_EOL;
+            $content .= " * @method static $this->modelClassName findOrNew(array \$ids, array \$columns = ['*'])" . PHP_EOL;
+        } else {
+            $content .= " * @method static $this->modelClassName|null find($this->primaryKeyType \$id, array \$columns = ['*'])" . PHP_EOL;
+            $content .= " * @method static $this->modelClassName findOrFail($this->primaryKeyType \$id, array \$columns = ['*'])" . PHP_EOL;
+            $content .= " * @method static $this->modelClassName findOrNew($this->primaryKeyType \$id, array \$columns = ['*'])" . PHP_EOL;
+        }
         $content .= " * @method static $this->modelClassName sole(array \$columns = ['*'])" . PHP_EOL;
         $content .= " * @method static $this->modelClassName|null first(array \$columns = ['*'])" . PHP_EOL;
         $content .= " * @method static $this->modelClassName firstOrFail(array \$columns = ['*'])" . PHP_EOL;
@@ -209,6 +220,34 @@ class EloquentModelInternal {
         $content .= " *" . PHP_EOL;
         $content .= " * AUTO GENERATED FILE DO NOT MODIFY" . PHP_EOL;
         $content .= " */" . PHP_EOL;
+        return $content;
+    }
+
+
+    private function getCompositeKeyMethods(): string {
+        $content = PHP_EOL;
+
+        $content .= "    public function getKey(): array {" . PHP_EOL;
+        $content .= "        \$attributes = [];" . PHP_EOL;
+        $content .= "        foreach (\$this->getKeyName() as \$key) {" . PHP_EOL;
+        $content .= "            \$attributes[\$key] = \$this->getAttribute(\$key);" . PHP_EOL;
+        $content .= "        }" . PHP_EOL;
+        $content .= "        return \$attributes;" . PHP_EOL;
+        $content .= "    }" . PHP_EOL  . PHP_EOL;
+
+        $content .= "    public static function find(array \$ids, array \$columns = ['*']): $this->modelClassName|null {" . PHP_EOL;
+        $content .= "        \$query = \$this->newQuery();" . PHP_EOL;
+        $content .= "        foreach (\$this->getKeyName() as \$key) {" . PHP_EOL;
+        $content .= "            \$query->where(column: \$key, operator: '=', value: \$ids[\$key]);" . PHP_EOL;
+        $content .= "        }" . PHP_EOL;
+        $content .= "        return \$query->first(\$columns);" . PHP_EOL;
+        $content .= "    }" . PHP_EOL . PHP_EOL;
+
+        $content .= "    public static function findOrFail(array \$ids, array \$columns = ['*']): $this->modelClassName {" . PHP_EOL;
+        $content .= "        \$result = \$this->find(ids: \$ids, columns: \$columns);" . PHP_EOL;
+        $content .= "        return \$result !== null ? \$result : throw new ModelNotFoundException();" . PHP_EOL;
+        $content .= "    }" . PHP_EOL . PHP_EOL;
+
         return $content;
     }
 }
