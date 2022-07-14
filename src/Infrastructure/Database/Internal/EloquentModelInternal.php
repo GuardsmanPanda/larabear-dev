@@ -109,7 +109,6 @@ class EloquentModelInternal {
         $content .= "    protected \$connection = '$this->connectionName';" . PHP_EOL;
         $content .= "    protected \$table = '$this->tableName';" . PHP_EOL;
 
-
         if (count($this->primaryKeyColumns) === 1) {
             $primaryKeyColumn = $this->primaryKeyColumns[0];
             $content .= "    protected \$primaryKey = '$primaryKeyColumn';" . PHP_EOL;
@@ -120,7 +119,7 @@ class EloquentModelInternal {
                 $content .= "    public \$incrementing = false;" . PHP_EOL;
             }
         } else {
-            $content .= "    protected \$primaryKey = ['" . implode(separator: "', '", array: $this->primaryKeyColumns) . "'];" . PHP_EOL;
+            $content .= "    private array \$primaryKeyArray = ['" . implode(separator: "', '", array: $this->primaryKeyColumns) . "'];" . PHP_EOL;
             $content .= "    protected \$keyType = 'array';" . PHP_EOL;
             $content .= "    public \$incrementing = false;" . PHP_EOL;
         }
@@ -131,7 +130,6 @@ class EloquentModelInternal {
             $content .= "    public \$timestamps = false;" . PHP_EOL;
         }
         $content .= PHP_EOL;
-
 
         $casts = $this->getCasts();
         if (count($casts) > 0) {
@@ -229,7 +227,7 @@ class EloquentModelInternal {
 
         $content .= "    public function getKey(): array {" . PHP_EOL;
         $content .= "        \$attributes = [];" . PHP_EOL;
-        $content .= "        foreach (\$this->primaryKey as \$key) {" . PHP_EOL;
+        $content .= "        foreach (\$this->primaryKeyArray as \$key) {" . PHP_EOL;
         $content .= "            \$attributes[\$key] = \$this->getAttribute(\$key);" . PHP_EOL;
         $content .= "        }" . PHP_EOL;
         $content .= "        return \$attributes;" . PHP_EOL;
@@ -244,7 +242,7 @@ class EloquentModelInternal {
         $content .= "    public static function find(array \$ids, array \$columns = ['*']): $this->modelClassName|null {" . PHP_EOL;
         $content .= "        \$me = new self;" . PHP_EOL;
         $content .= "        \$query = \$me->newQuery();" . PHP_EOL;
-        $content .= "        foreach (\$me->primaryKey as \$key) {" . PHP_EOL;
+        $content .= "        foreach (\$me->primaryKeyArray as \$key) {" . PHP_EOL;
         $content .= "            \$query->where(column: \$key, operator: '=', value: \$ids[\$key]);" . PHP_EOL;
         $content .= "        }" . PHP_EOL;
         $content .= "        \$result = \$query->first(\$columns);" . PHP_EOL;
@@ -259,12 +257,19 @@ class EloquentModelInternal {
         $content .= "     */" . PHP_EOL;
         $content .= "    public static function findOrFail(array \$ids, array \$columns = ['*']): $this->modelClassName {" . PHP_EOL;
         $content .= "        \$result = self::find(ids: \$ids, columns: \$columns);" . PHP_EOL;
-        $content .= "        return \$result ?? throw (new ModelNotFoundException())->setModel(model: __CLASS__, ids: \$ids);" . PHP_EOL;
+        $content .= "        return \$result ?? throw (new ModelNotFoundException())->setModel(model: __CLASS__, ids: array_values(\$ids));" . PHP_EOL;
         $content .= "    }" . PHP_EOL . PHP_EOL;
 
 
         $content .= "    protected function setKeysForSaveQuery(\$query): EloquentBuilder { " . PHP_EOL;
-        $content .= "        foreach (\$this->primaryKey as \$key) {" . PHP_EOL;
+        $content = $this->setPrimaryKeyQuery($content);
+
+        $content .= "    protected function setKeysForSelectQuery(\$query): EloquentBuilder { " . PHP_EOL;
+        return $this->setPrimaryKeyQuery($content);
+    }
+
+    private function setPrimaryKeyQuery(string $content): string {
+        $content .= "        foreach (\$this->primaryKeyArray as \$key) {" . PHP_EOL;
         $content .= "            if (isset(\$this->\$key)) {" . PHP_EOL;
         $content .= "                \$query->where(column: \$key, operator: '=', value: \$this->\$key);" . PHP_EOL;
         $content .= "            } else {" . PHP_EOL;
@@ -273,7 +278,6 @@ class EloquentModelInternal {
         $content .= "        }" . PHP_EOL;
         $content .= "        return \$query;" . PHP_EOL;
         $content .= "    }" . PHP_EOL;
-
         return $content;
     }
 }
