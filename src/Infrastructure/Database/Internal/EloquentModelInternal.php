@@ -155,6 +155,9 @@ class EloquentModelInternal {
 
     private function getTopOfClass(): string {
         $content = "<?php" . PHP_EOL . PHP_EOL . 'namespace ' . $this->getNameSpace() . ';' . PHP_EOL . PHP_EOL;
+        if ($this->hasCompositePrimaryKey()) {
+            $this->headers->add('use Illuminate\Database\Eloquent\ModelNotFoundException;');
+        }
 
         $hh = $this->headers->toArray();
         sort($hh);
@@ -172,8 +175,6 @@ class EloquentModelInternal {
         $content .= " * AUTO GENERATED FILE DO NOT MODIFY" . PHP_EOL;
         $content .= " *" . PHP_EOL;
         if ($this->hasCompositePrimaryKey()) {
-            $content .= " * @method static $this->modelClassName|null find(array \$ids, array \$columns = ['*'])" . PHP_EOL;
-            $content .= " * @method static $this->modelClassName findOrFail(array \$ids, array \$columns = ['*'])" . PHP_EOL;
             $content .= " * @method static $this->modelClassName findOrNew(array \$ids, array \$columns = ['*'])" . PHP_EOL;
         } else {
             $content .= " * @method static $this->modelClassName|null find($this->primaryKeyType \$id, array \$columns = ['*'])" . PHP_EOL;
@@ -225,27 +226,53 @@ class EloquentModelInternal {
 
 
     private function getCompositeKeyMethods(): string {
-        $content = PHP_EOL;
+        $content = PHP_EOL . PHP_EOL;
 
         $content .= "    public function getKey(): array {" . PHP_EOL;
         $content .= "        \$attributes = [];" . PHP_EOL;
-        $content .= "        foreach (\$this->getKeyName() as \$key) {" . PHP_EOL;
+        $content .= "        foreach (\$this->primaryKey as \$key) {" . PHP_EOL;
         $content .= "            \$attributes[\$key] = \$this->getAttribute(\$key);" . PHP_EOL;
         $content .= "        }" . PHP_EOL;
         $content .= "        return \$attributes;" . PHP_EOL;
         $content .= "    }" . PHP_EOL  . PHP_EOL;
 
+
+        $content .= "    /**" . PHP_EOL;
+        $content .= "     * @param array<string, string> \$ids # Ids in the form ['key1' => 'value1', 'key2' => 'value2']" . PHP_EOL;
+        $content .= "     * @param array<string> \$columns" . PHP_EOL;
+        $content .= "     * @return $this->modelClassName|null" . PHP_EOL;
+        $content .= "     */" . PHP_EOL;
         $content .= "    public static function find(array \$ids, array \$columns = ['*']): $this->modelClassName|null {" . PHP_EOL;
-        $content .= "        \$query = \$this->newQuery();" . PHP_EOL;
-        $content .= "        foreach (\$this->getKeyName() as \$key) {" . PHP_EOL;
+        $content .= "        \$me = new self;" . PHP_EOL;
+        $content .= "        \$query = \$me->newQuery();" . PHP_EOL;
+        $content .= "        foreach (\$me->primaryKey as \$key) {" . PHP_EOL;
         $content .= "            \$query->where(column: \$key, operator: '=', value: \$ids[\$key]);" . PHP_EOL;
         $content .= "        }" . PHP_EOL;
-        $content .= "        return \$query->first(\$columns);" . PHP_EOL;
+        $content .= "        \$result = \$query->first(\$columns);" . PHP_EOL;
+        $content .= "        return \$result instanceof self ? \$result : null;" . PHP_EOL;
         $content .= "    }" . PHP_EOL . PHP_EOL;
 
+
+        $content .= "    /**" . PHP_EOL;
+        $content .= "     * @param array<string, string> \$ids # Ids in the form ['key1' => 'value1', 'key2' => 'value2']" . PHP_EOL;
+        $content .= "     * @param array<string> \$columns" . PHP_EOL;
+        $content .= "     * @return $this->modelClassName" . PHP_EOL;
+        $content .= "     */" . PHP_EOL;
         $content .= "    public static function findOrFail(array \$ids, array \$columns = ['*']): $this->modelClassName {" . PHP_EOL;
-        $content .= "        \$result = \$this->find(ids: \$ids, columns: \$columns);" . PHP_EOL;
-        $content .= "        return \$result !== null ? \$result : throw new ModelNotFoundException();" . PHP_EOL;
+        $content .= "        \$result = self::find(ids: \$ids, columns: \$columns);" . PHP_EOL;
+        $content .= "        return \$result ?? throw (new ModelNotFoundException())->setModel(model: __CLASS__, ids: \$ids);" . PHP_EOL;
+        $content .= "    }" . PHP_EOL . PHP_EOL;
+
+
+        $content .= "    protected function setKeysForSaveQuery(Builder \$query): Builder { " . PHP_EOL;
+        $content .= "        foreach (\$this->primaryKey as \$key) {" . PHP_EOL;
+        $content .= "            if (isset(\$this->\$key)) {" . PHP_EOL;
+        $content .= "                \$query->where(column: \$key, operator: '=', value: \$this->\$key);" . PHP_EOL;
+        $content .= "            } else {" . PHP_EOL;
+        $content .= "                throw RuntimeException::create(message: 'Missing primary key value for \$key');" . PHP_EOL;
+        $content .= "            }" . PHP_EOL;
+        $content .= "        }" . PHP_EOL;
+        $content .= "        return \$query;" . PHP_EOL;
         $content .= "    }" . PHP_EOL . PHP_EOL;
 
         return $content;
